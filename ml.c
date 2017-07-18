@@ -5,30 +5,30 @@
 #include <unistd.h>
 #include<stdlib.h>
 #include <string.h>
- #include <pwd.h>//包含getpwuid
- #include <grp.h>//getgrgid
- #include <time.h> //ctime();
+#include <pwd.h>//包含getpwuid
+#include <grp.h>//getgrgid
+#include<fcntl.h>
+#include <time.h> //ctime();
 int main(int argc,char **argv)
 {
 
- printf("SDggfsgdhgfnf");
 
-
-
-
-
+    if(chdir("../")==-1) //切换工作目录，(接下来进行的一切操作都会之间影响这个目录)
+    {
+        perror("dfgdfgd");
+        exit(1);
+    }
     DIR *odir;//打开目录
     struct dirent *rdir;//获取目录下的目录
     struct stat dirbuf;//获取文件属性
     struct passwd *pad;//保存得到的用户名
     struct group *grp;//保存得到的组名
-
     char buftime[30];//储存时间字符串
 
-    odir=opendir("./");
+    odir=opendir("./");//已经进入到这个目录了，就不用再使用相对路径了
     if(odir==NULL)
     {
-        perror("/home/gjln/gjl/练习/mygit");
+        perror("/home/gjln/gjl");
         exit(1);
     }
 
@@ -36,7 +36,11 @@ int main(int argc,char **argv)
     {
 
 
-        stat(rdir->d_name,&dirbuf);//获得文件属性结构体后，里面的都是模式值，还要一些奇怪的操作把模式值转化为字符串；
+        if(stat(rdir->d_name,&dirbuf)==-1)//获得文件属性结构体后，里面的都是模式值，还要一些奇怪的操作把模式值转化为字符串；
+        {
+            perror("/hogjl");//这里会出错应为之前第一次做没有切换目录，opendir正常打开后获取了相对路径下的文件名称，而自己目路下没有这个文件。
+            exit(1);//所以如果不切换目录stat时候就要讲rdir->name,保存在字符串里，然后处理成相对路径就好了。
+        }
 
         if(S_ISLNK(dirbuf.st_mode))//st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
             printf("|");//符号链接文件
@@ -93,7 +97,7 @@ int main(int argc,char **argv)
             printf("-");
 
 
-        printf(" %d",dirbuf.st_nlink);//链接数
+        printf(" %-5d",dirbuf.st_nlink);//链接数
 
         pad=getpwuid(dirbuf.st_uid);//这个函数通过用户ＩＤ找到用户信息赋给结构体
         printf(" %-5s",pad->pw_name);//名字在结构体里面
