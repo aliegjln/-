@@ -22,6 +22,7 @@
 #define MAXLINE    80    //一行最多长度
 
 char root_pathname[100];//获得初始目录
+char R_name[100];
 int my_err(char *err,int line)
 {
     printf("line:%d ",line);
@@ -44,8 +45,68 @@ int play_file(char *name,int flag)//处理文件打开方式．．．
     printf("文件%s %d\n",name,flag);
     return 0;
 }
+int shot_time(char filename[][100],int book[],int n)//文件名，记录数组，文件个数
+{
+    enum month {Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec};
+    char filetime[256][50];
+    struct stat file_buf;
+    int i,j,k;
+    for(i=0;i<n;i++)
+    {
+        if(stat(filename[i],&file_buf)==-1)
+           my_err("stat",__LINE__);
+        strcpy(filetime[i],ctime(&file_buf.st_mtime));//ctime()可以把时间转成字符串,返回值为字符串
+        for(j=0;j<4;j++)//转换年份
+        {
+            filetime[i][j]=filetime[i][j+20];
+            filetime[i][j+20]=0;
+        }
+        if(filetime[i][j]=='J'&&filetime[i][j+1]=='a')//转换月份
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='1';
+        if(filetime[i][j]=='F')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='2';
+        if(filetime[i][j]=='M'&&filetime[i][j+2]=='r')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='3';
+        if(filetime[i][j]=='A'&&filetime[i][j+1]=='p')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='4';
+        if(filetime[i][j]=='M'&&filetime[i][j+2]=='y')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='5';
+        if(filetime[i][j]=='J'&&filetime[i][j+2]=='n')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='6';
+        if(filetime[i][j]=='J'&&filetime[i][j+2]=='l')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='7';
+        if(filetime[i][j]=='A'&&filetime[i][j+1]=='u')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='8';
+        if(filetime[i][j]=='S')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='9';
+        if(filetime[i][j]=='O')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]=':';
+        if(filetime[i][j]=='N')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]=':';
+        if(filetime[i][j]=='D')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='<';
+     //   printf("%s",filetime[i]);
+    }
+    for(i=0;i<n;i++)//按名字排序
+        for(j=0;j<n-1-i;j++)
+        {
+            if(strcmp(filetime[book[j]],filetime[book[j+1]])<0)
+            {
+                k=book[j];
+                book[j]=book[j+1];
+                book[j+1]=k;
+            }
+        }
+}
 int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
 {
+
+    strcat(R_name,pathname);
+    if(R_name[strlen(R_name)-1]!='/')
+    {
+        R_name[strlen(R_name)+1]=0;
+        R_name[strlen(R_name)]='/';
+    }
     char time_pathname[100];
     if(getcwd(time_pathname,100)<0)
     {
@@ -94,7 +155,8 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
                 book[j+1]=k;
             }
         }
-
+    if(flag&PARAM_t)
+        shot_time(filename,book,sum);
     if(flag&PARAM_r)//倒序处理
     {
         r_start=-sum+1;
@@ -106,13 +168,12 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
         r_end=sum;
     }
 
-    if(flag&PARAM_MORE)//如果有多个且为文件输出一下文件名
+    if(flag&PARAM_MORE && !(flag&PARAM_R))//如果有多个且为文件输出一下文件名
         printf("%s:\n",pathname);
-    for(i=r_start;i<r_end;i++)
+    for(i=r_start;i<r_end;i++)//输出一遍
     {
         play_file(filename[book[abs(i)]],flag);
     }
-    printf("\n");
     if(flag&PARAM_R)
     {
         struct stat buf;//保存文件信息
@@ -125,8 +186,16 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
 
             if(S_ISDIR(buf.st_mode))
             {
-                printf("\n%s\\\%s:\n",pathname,filename[book[abs(i)]]);
+
+                printf("\n%s%s:\n",R_name,filename[book[abs(i)]]);
                 play_dir(filename[book[abs(i)]],flag);
+                for(k=strlen(R_name)-2;k>=0;k--)
+                {
+                    if(R_name[k]!='/')
+                        R_name[k]=0;
+                    else
+                        break;
+                }
             }
         }
     }
@@ -193,7 +262,7 @@ int main(int argc,char **argv)
 
         }
     }
- printf("%d %d\n",flag_param,i);
+ //printf("%d %d\n",flag_param,i);
     if(i==argc)//只有一个文件名
         play_dir("./",flag_param);
     if(i+1<argc)       //两个以上
@@ -203,10 +272,13 @@ int main(int argc,char **argv)
         if(stat(argv[i],&buf)==-1)//文件是否存在是否是
             my_err(argv[i],__LINE__);
         if(S_ISDIR(buf.st_mode))
+        {
             play_dir(argv[i],flag_param);
+            if((flag_param&PARAM_R)||(flag_param&PARAM_MORE))
+                printf("\n");
+        }
         else
             play_file(argv[i],flag_param);
-
     }
 
 }
