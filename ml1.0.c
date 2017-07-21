@@ -13,9 +13,6 @@
 #include <math.h>
 #include <errno.h>
 
-#define _FILE_OFFSET_BITS 64
-
-
 #define PARAM_NONE 0     //无参数
 #define PARAM_a    1     //all
 #define PARAM_l    2     //详细信息
@@ -25,11 +22,12 @@
 #define PARAM_MORE 32    //多文件
 #define MAXLINE    80    //一行最多长度
 
-char R_name[100];//-R 相对路径
+char R_name[200];//-R 相对路径
 int line_long;//最长文件
 int line_rest;//一行剩余长度
 
-int printf_strlen(char a[])
+
+int printf_strlen(char a[])//字符串在屏幕上占的长度
 {
     int i,sum=0;
     for(i=0;i<strlen(a);i++)
@@ -42,20 +40,73 @@ int printf_strlen(char a[])
 }
 int my_err(char *err,int line)
 {
-    printf("line:%d ",line);
+    printf("line:%d \n",line);
     perror(err);
     exit(1);
 }
 int Gjldw()
 {
-    printf("真是明智的想法，这里才是真正的说明\n");
+    printf("真是明智的想法，这里才是真正的说明\n\n");
+    printf("用法：ml[选项]…[文件]…\n");
+    printf("多文件名纵向并列输出。\n目录下文件横向并列输出。\n");
+    printf("默认按照文件名排序。\n\n");
+    printf("选择参数对长短选项同时适用。\n");
+    printf("  -a :       不隐藏任何以. 开始的项目\n");
+    printf("  -l :       使用较长格式列出信息\n");
+    printf("  -R :       递归显示子目录\n");
+    printf("  -r :       逆序排列\n");
+    printf("  -t :       按照文件修改时间排序\n");
+    printf("  -help:     显示假的帮助信息并退出\n");
+    printf("  -gjldw:    显示此帮助信息并退出\n\n");
+    printf("退出状态:\n");
+    printf("  0:  正常\n");
+    printf("  1:  问题退出（例如：无法访问文件）\n");
     exit(0);
 }
 int Help()
 {
     printf("这里应该是说明，但是我懒得写。。。\n");
-    printf("tip:大喊”高嘉两大王“他会告诉你怎么用，记住是高嘉两大王\n");
+    printf("tip:大喊”高嘉两大王“他会告诉你怎么用，\n    记住是高嘉两大王\n\n");
     exit(0);
+}
+int printf_colour(char name[])
+{
+    struct stat buf;
+    if(lstat(name,&buf)==-1)
+    {
+        if(errno==2||errno==13)
+        {
+            perror(name);
+            return 0 ;
+        }
+        else
+            my_err(name,__LINE__);
+    }
+    if(S_ISLNK(buf.st_mode))//st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
+    {
+        printf("\033[36m%s\033[0m",name);//|符号链接文件
+        return 0;
+    }
+
+    if(S_ISDIR(buf.st_mode))
+    {
+        printf("\033[34m%s\033[0m",name);//d目录文件
+        return 0;
+    }
+    if(S_ISCHR(buf.st_mode)||S_ISBLK(buf.st_mode))
+    {
+         printf("\033[33m%s\033[0m",name);// 字符设备文件//设备文件
+         return 0;
+    }
+    if(buf.st_mode& S_IXUSR)
+    {
+         printf("\033[32m%s\033[0m",name);//x 可执行文件
+         return 0;
+    }
+    printf("\033[37m%s\033[0m",name);
+    return 0;
+
+
 }
 int show_name(char *name)
 {
@@ -66,7 +117,7 @@ int show_name(char *name)
         printf("789\n");
         line_rest=80;
     }
-    printf("%s",name);
+    printf_colour(name);//printf("%s",name);//
     line_rest=line_rest-line_long-1;
     for(i=0;i<=line_long-len&&i<=line_rest;i++)
         printf(" ");
@@ -80,8 +131,15 @@ int show_property(char name[])
     struct group *grp;//保存得到的组名
     char buftime[30];//储存时间字符串
     if(lstat(name,&buf)==-1)
-        my_err("lstat",__LINE__);
-
+    {
+        if(errno==2||errno==13)
+        {
+            perror(name);
+            return 0 ;
+        }
+        else
+            my_err(name,__LINE__);
+    }
     if(S_ISLNK(buf.st_mode))//st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
         printf("|");//符号链接文件
     if(S_ISREG(buf.st_mode))
@@ -136,7 +194,6 @@ int show_property(char name[])
     else
         printf("-");
 
-
     printf(" %-5d",buf.st_nlink);//链接数
 
     pad=getpwuid(buf.st_uid);//这个函数通过用户ＩＤ找到用户信息赋给结构体
@@ -150,7 +207,8 @@ int show_property(char name[])
     buftime[strlen(ctime(&buf.st_mtime))-1]=0;//返回的字符串末尾是一个回车，这个操作就是为了取掉回车；
     printf(" %s",buftime);
 
-    printf(" %s\n",name);
+    printf_colour(name);
+    printf("\n");
 
     return 0;
 }
@@ -166,7 +224,7 @@ int play_file(char *name,int flag)//处理文件打开方式．．．
 }
 int shot_time(char filename[][100],int book[],int n)//文件名，记录数组，文件个数
 {
-    char filetime[10000][50];
+    char (*filetime)[100]=(char (*)[100])malloc(sizeof(char (*)[100])*n*100);
     struct stat file_buf;
     int i,j,k;
     for(i=0;i<n;i++)
@@ -225,7 +283,6 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
         R_name[strlen(R_name)+1]=0;
         R_name[strlen(R_name)]='/';
     }
-printf("\n%s******\n",pathname);
     char time_pathname[100];//或取之前的目录
     if(getcwd(time_pathname,100)<0)
     {
@@ -235,19 +292,35 @@ printf("\n%s******\n",pathname);
     if(chdir(pathname)==-1) //切换工作目录，(接下来进行的一切操作都会之间影响这个目录),千万要记得返回时
     {
         if(errno==13)
-           perror(pathname);
-        return 0 ;
+        {
+            perror(pathname);
+            if(chdir(time_pathname)==-1) //切换回来工作目录
+            perror("chdir");
+            return 0 ;
+        }
+        else
+            my_err("chird",__LINE__);
     }
 
 
     int sum,r_start,r_end;
     int i,j,k;
-printf("\n66666*********\n");
     DIR *odir;//打开目录
     struct dirent *rdir;//获取目录下的文件信息
 
     if(odir=opendir("./"),odir==NULL)
-        my_err("opendir",__LINE__);
+    {
+        if(errno==13)
+        {
+
+            perror(R_name);
+            if(chdir(time_pathname)==-1) //切换回来工作目录
+                perror("chdir");
+            return 0 ;
+        }
+        else
+            my_err("opendir",__LINE__);
+    }
     sum=0;
     while(rdir=readdir(odir),rdir!=NULL)//循环读文件名找到文件个数
     {
@@ -256,22 +329,31 @@ printf("\n66666*********\n");
     closedir(odir);
 
     if(odir=opendir("./"),odir==NULL)
-        my_err("opendir",__LINE__);
+    {
+        if(errno==13)
+        {
+            perror(R_name);
+            if(chdir(time_pathname)==-1) //切换回来工作目录
+                perror("chdir");
+            return 0 ;
+        }
+        else
+            my_err("opendir",__LINE__);
+    }
     char (*filename)[100]=(char (*)[100])malloc(sizeof(char (*)[100])*sum*100);
     int *book=(int *)malloc(sizeof(int )*sum);
 
     sum=0;
     while(rdir=readdir(odir),rdir!=NULL)//循环读文件名保存数组
     {
-printf("%s",rdir->d_name);
         strcpy(filename[sum],rdir->d_name);
         book[sum]=sum;
         sum++;
     }
     closedir(odir);
 
-    if(sum>1000)
-        my_err("有这么多文件的吗",__LINE__);
+    //if(sum>10000)
+     //   my_err("有这么多文件的吗",__LINE__);
 
 
     if(!(flag&PARAM_a))                  //处理a
@@ -336,9 +418,30 @@ printf("%s",rdir->d_name);
         {
             if(!strcmp(".",filename[book[abs(i)]])||!strcmp("./",filename[book[abs(i)]])||!strcmp("..",filename[book[abs(i)]])||!strcmp("../",filename[book[abs(i)]]))
                 continue;
+//printf("%s 这里 ",filename[book[abs(i)]]);
+//printf("time-lstat:%d \n",lstat(filename[book[abs(i)]],&buf));
             if(lstat(filename[book[abs(i)]],&buf)==-1)
-                my_err("stst",__LINE__);
-
+            {
+                if(errno==2)
+                {
+                    perror(filename[book[abs(i)]]);
+                    if(chdir(time_pathname)==-1) //切换回来工作目录
+                        perror("chdir");
+                    //getchar();
+                    return 0 ;
+                }
+                if(errno=13)
+                {
+                     perror(filename[book[abs(i)]]);
+                    if(chdir(time_pathname)==-1) //切换回来工作目录
+                        perror("");
+                    return 0 ;
+                }
+                else
+                {
+                    my_err(filename[book[abs(i)]],__LINE__);
+                }
+            }
             if(S_ISDIR(buf.st_mode))
             {
 
@@ -354,24 +457,13 @@ printf("%s",rdir->d_name);
                         break;
                 }
             }
+
         }
     }
-
-
-
-/*for(i=r_start;i<r_end;i++)
-{
-    printf("%s\n",filename[book[abs(i)]]);
-}
-    printf("目录%s %d\n",pathname,flag);
-
-*/
-
     if(chdir(time_pathname)==-1) //切换回来工作目录
         perror("chdir");
     return 0;
 }
-
 int main(int argc,char **argv)
 {
     if(argc>256)
@@ -411,7 +503,6 @@ int main(int argc,char **argv)
 
         }
     }
- //printf("%d %d\n",flag_param,i);
     if(i==argc)//只有一个文件名
         play_dir("./",flag_param);
     if(i+1<argc)       //两个以上
@@ -424,7 +515,6 @@ int main(int argc,char **argv)
         if(S_ISDIR(buf.st_mode))
         {
             play_dir(argv[i],flag_param);
-            if((flag_param&PARAM_R)||(flag_param&PARAM_MORE));
 
         }
         else
@@ -433,7 +523,7 @@ int main(int argc,char **argv)
             printf("\n");
         }
     }
-
+    return 0;
 }
 
 
