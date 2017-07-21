@@ -11,6 +11,10 @@
 #include<fcntl.h>
 #include <time.h> //ctime();
 #include <math.h>
+#include <errno.h>
+
+#define _FILE_OFFSET_BITS 64
+
 
 #define PARAM_NONE 0     //无参数
 #define PARAM_a    1     //all
@@ -75,8 +79,8 @@ int show_property(char name[])
     struct passwd *pad;//保存得到的用户名
     struct group *grp;//保存得到的组名
     char buftime[30];//储存时间字符串
-    if(stat(name,&buf)==-1)
-        my_err("stat",__LINE__);
+    if(lstat(name,&buf)==-1)
+        my_err("lstat",__LINE__);
 
     if(S_ISLNK(buf.st_mode))//st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
         printf("|");//符号链接文件
@@ -162,14 +166,14 @@ int play_file(char *name,int flag)//处理文件打开方式．．．
 }
 int shot_time(char filename[][100],int book[],int n)//文件名，记录数组，文件个数
 {
-    char filetime[256][50];
+    char filetime[10000][50];
     struct stat file_buf;
     int i,j,k;
     for(i=0;i<n;i++)
     {
 
-        if(stat(filename[book[i]],&file_buf)==-1)
-           my_err("stat",__LINE__);
+        if(lstat(filename[book[i]],&file_buf)==-1)
+           my_err("lstat",__LINE__);
         strcpy(filetime[book[i]],ctime(&file_buf.st_mtime));//ctime()可以把时间转成字符串,返回值为字符串
         for(j=0;j<4;j++)//转换年份
         {
@@ -221,7 +225,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
         R_name[strlen(R_name)+1]=0;
         R_name[strlen(R_name)]='/';
     }
-
+printf("\n%s******\n",pathname);
     char time_pathname[100];//或取之前的目录
     if(getcwd(time_pathname,100)<0)
     {
@@ -229,28 +233,46 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
     }
 
     if(chdir(pathname)==-1) //切换工作目录，(接下来进行的一切操作都会之间影响这个目录),千万要记得返回时
-        perror("chdir");
+    {
+        if(errno==13)
+           perror(pathname);
+        return 0 ;
+    }
 
-    char filename[256][100];
-    int book[256];
+
     int sum,r_start,r_end;
     int i,j,k;
-
+printf("\n66666*********\n");
     DIR *odir;//打开目录
     struct dirent *rdir;//获取目录下的文件信息
 
     if(odir=opendir("./"),odir==NULL)
         my_err("opendir",__LINE__);
+    sum=0;
+    while(rdir=readdir(odir),rdir!=NULL)//循环读文件名找到文件个数
+    {
+        sum++;
+    }
+    closedir(odir);
+
+    if(odir=opendir("./"),odir==NULL)
+        my_err("opendir",__LINE__);
+    char (*filename)[100]=(char (*)[100])malloc(sizeof(char (*)[100])*sum*100);
+    int *book=(int *)malloc(sizeof(int )*sum);
 
     sum=0;
     while(rdir=readdir(odir),rdir!=NULL)//循环读文件名保存数组
     {
+printf("%s",rdir->d_name);
         strcpy(filename[sum],rdir->d_name);
         book[sum]=sum;
         sum++;
     }
-    if(sum>256)
+    closedir(odir);
+
+    if(sum>1000)
         my_err("有这么多文件的吗",__LINE__);
+
 
     if(!(flag&PARAM_a))                  //处理a
         for(i=0;i<sum;i++)
@@ -305,7 +327,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
     if(flag&PARAM_l)//对a ; 不同输出的格式控制
         printf("\n");
     else
-     printf("\n123\n");
+        printf("\n123\n");
 
     if(flag&PARAM_R)
     {
@@ -314,7 +336,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
         {
             if(!strcmp(".",filename[book[abs(i)]])||!strcmp("./",filename[book[abs(i)]])||!strcmp("..",filename[book[abs(i)]])||!strcmp("../",filename[book[abs(i)]]))
                 continue;
-            if(stat(filename[book[abs(i)]],&buf)==-1)
+            if(lstat(filename[book[abs(i)]],&buf)==-1)
                 my_err("stst",__LINE__);
 
             if(S_ISDIR(buf.st_mode))
@@ -397,7 +419,7 @@ int main(int argc,char **argv)
     for(i;i<argc;i++)//遍历一遍文件名
     {
         line_rest=80;
-        if(stat(argv[i],&buf)==-1)//文件是否存在是否是
+        if(lstat(argv[i],&buf)==-1)//文件是否存在是否是//全局使用lstat,f防止有链接文件；
             my_err(argv[i],__LINE__);
         if(S_ISDIR(buf.st_mode))
         {
