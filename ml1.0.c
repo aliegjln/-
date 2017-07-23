@@ -1,12 +1,12 @@
 #include<stdio.h>
-#include<stdio.h>
+#include<stdlib.h>
 #include<sys/types.h>
-#include<dirent.h>//目录文件
-#include<sys/stat.h>//获取属性命令
+#include<dirent.h>                 //目录文件
+#include<sys/stat.h>              //获取属性命令
 #include <unistd.h>
 #include<stdlib.h>
 #include <string.h>
-#include <pwd.h>//包含getpwuid
+#include <pwd.h>                  //包含getpwuid
 #include <grp.h>//getgrgid
 #include<fcntl.h>
 #include <time.h> //ctime();
@@ -25,7 +25,6 @@
 char R_name[200];//-R 相对路径
 int line_long;//最长文件
 int line_rest;//一行剩余长度
-
 
 int printf_strlen(char a[])//字符串在屏幕上占的长度
 {
@@ -82,31 +81,28 @@ int printf_colour(char name[])
         else
             my_err(name,__LINE__);
     }
-    if(S_ISLNK(buf.st_mode))//st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
+    if(S_ISLNK(buf.st_mode))             //st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
     {
-        printf("\033[36m%s\033[0m",name);//|符号链接文件
+        printf("\033[1;36m%s\033[0m",name);//|符号链接文件
         return 0;
     }
-
     if(S_ISDIR(buf.st_mode))
     {
-        printf("\033[34m%s\033[0m",name);//d目录文件
+        printf("\033[1;34m%s\033[0m",name);//d目录文件
         return 0;
     }
     if(S_ISCHR(buf.st_mode)||S_ISBLK(buf.st_mode))
     {
-         printf("\033[33m%s\033[0m",name);// 字符设备文件//设备文件
+         printf("\033[1;33m%s\033[0m",name);// 字符设备文件//设备文件
          return 0;
     }
     if(buf.st_mode& S_IXUSR)
     {
-         printf("\033[32m%s\033[0m",name);//x 可执行文件
+         printf("\033[1;32m%s\033[0m",name);//x 可执行文件
          return 0;
     }
-    printf("\033[37m%s\033[0m",name);
+    printf("\033[1;37m%s\033[0m",name);
     return 0;
-
-
 }
 int show_name(char *name)
 {
@@ -114,22 +110,21 @@ int show_name(char *name)
     len=printf_strlen(name);
     if(len>line_rest)
     {
-        printf("789\n");
+        printf("\n");
         line_rest=80;
     }
-    printf_colour(name);//printf("%s",name);//
+    printf_colour(name);
     line_rest=line_rest-line_long-1;
     for(i=0;i<=line_long-len&&i<=line_rest;i++)
         printf(" ");
-//printf("%d %d",line_long,line_rest);
     return 0;
 }
 int show_property(char name[])
 {
     struct stat buf;
     struct passwd *pad;//保存得到的用户名
-    struct group *grp;//保存得到的组名
-    char buftime[30];//储存时间字符串
+    struct group *grp; //保存得到的组名
+    char buftime[30];  //储存时间字符串
     if(lstat(name,&buf)==-1)
     {
         if(errno==2||errno==13)
@@ -141,19 +136,19 @@ int show_property(char name[])
             my_err(name,__LINE__);
     }
     if(S_ISLNK(buf.st_mode))//st_mode中获取文件类型（通过使用ＰＯＳＩＸ定义的一系列宏）
-        printf("|");//符号链接文件
+        printf("|");        //符号链接文件
     if(S_ISREG(buf.st_mode))
-        printf("-");//普通文件
+        printf("-");        //普通文件
     if(S_ISDIR(buf.st_mode))
-        printf("d");//目录文件
+        printf("d");        //目录文件
     if(S_ISCHR(buf.st_mode))
-        printf("c");//字符设备文件
+        printf("c");        //字符设备文件
     if(S_ISBLK(buf.st_mode))
-        printf("b");//设备文件
+        printf("b");        //设备文件
     if(S_ISFIFO(buf.st_mode))
-        printf("p");//管道文件
+        printf("p");        //管道文件
     if(S_ISSOCK(buf.st_mode))
-        printf("s");//套接字文件
+        printf("s");        //套接字文件
 
     if(buf.st_mode& S_IRUSR)//文件所有者(宏定义)
         printf("r");
@@ -196,17 +191,16 @@ int show_property(char name[])
 
     printf(" %-5d",buf.st_nlink);//链接数
 
-    pad=getpwuid(buf.st_uid);//这个函数通过用户ＩＤ找到用户信息赋给结构体
-    printf(" %-5s",pad->pw_name);//名字在结构体里面
-    grp=getgrgid(buf.st_gid);//这个函数通过用户组ＩＤ找到用户组信息赋给结构体
-    printf(" %-5s",grp->gr_name);//名字在结构体里面
+    pad=getpwuid(buf.st_uid);       //这个函数通过用户ＩＤ找到用户信息赋给结构体
+    printf(" %-5s",pad->pw_name);   //名字在结构体里面
+    grp=getgrgid(buf.st_gid);       //这个函数通过用户组ＩＤ找到用户组信息赋给结构体
+    printf(" %-5s",grp->gr_name);   //名字在结构体里面
 
-    printf("%-6d",(int )buf.st_size);
+    printf(" %-6d",(int )buf.st_size);
 
-    strcpy(buftime,ctime(&buf.st_mtime));//ctime()可以把时间转成字符串,返回值为字符串(莫名其妙，dirbuf结构体里面是st_mtim,但是那里面要再填个e);
-    buftime[strlen(ctime(&buf.st_mtime))-1]=0;//返回的字符串末尾是一个回车，这个操作就是为了取掉回车；
-    printf(" %s",buftime);
-
+    strcpy(buftime,ctime(&buf.st_mtime));       //ctime()可以把时间转成字符串,返回值为字符串(莫名其妙，dirbuf结构体里面是st_mtim,但是那里面要再填个e);
+    buftime[strlen(ctime(&buf.st_mtime))-1]=0;  //返回的字符串末尾是一个回车，这个操作就是为了取掉回车；
+    printf(" %s ",buftime);
     printf_colour(name);
     printf("\n");
 
@@ -218,53 +212,64 @@ int play_file(char *name,int flag)//处理文件打开方式．．．
         show_property(name);
     else
         show_name(name);
-
-    //printf("文件%s %d\n ",name,flag);
     return 0;
 }
-int shot_time(char filename[][100],int book[],int n)//文件名，记录数组，文件个数
+int shot_time(char filename[][100],int book[],int n,int m)//文件名，记录数组，文件个数,处理后的文件个数（a）
 {
-    char (*filetime)[100]=(char (*)[100])malloc(sizeof(char (*)[100])*n*100);
-    struct stat file_buf;
     int i,j,k;
+    char **filetime=(char **)malloc(sizeof(char *)*n);
+    for(i=0;i<n;i++)
+    {
+        filetime[i]=(char *)malloc(sizeof(char)*50);
+    }
+    struct stat file_buf;
     for(i=0;i<n;i++)
     {
 
-        if(lstat(filename[book[i]],&file_buf)==-1)
-           my_err("lstat",__LINE__);
-        strcpy(filetime[book[i]],ctime(&file_buf.st_mtime));//ctime()可以把时间转成字符串,返回值为字符串
-        for(j=0;j<4;j++)//转换年份
+        if(lstat(filename[i],&file_buf)==-1)
         {
-            filetime[book[i]][j]=filetime[book[i]][j+20];
-            filetime[book[i]][j+20]=0;
+            if(errno==13||errno==2)
+            {
+                strcpy(filetime[i],"~~~~~~~~");
+                continue;
+            }
+            else
+            my_err("lstat",__LINE__);
         }
-        if(filetime[book[i]][j]=='J'&&filetime[book[i]][j+1]=='a')//转换月份
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='1';
-        if(filetime[book[i]][j]=='F')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='2';
-        if(filetime[book[i]][j]=='M'&&filetime[book[i]][j+2]=='r')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='3';
-        if(filetime[book[i]][j]=='A'&&filetime[book[i]][j+1]=='p')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='4';
-        if(filetime[book[i]][j]=='M'&&filetime[book[i]][j+2]=='y')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='5';
-        if(filetime[book[i]][j]=='J'&&filetime[book[i]][j+2]=='n')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='6';
-        if(filetime[book[i]][j]=='J'&&filetime[book[i]][j+2]=='l')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='7';
-        if(filetime[book[i]][j]=='A'&&filetime[book[i]][j+1]=='u')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='8';
-        if(filetime[book[i]][j]=='S')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='9';
-        if(filetime[book[i]][j]=='O')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]=':';
-        if(filetime[book[i]][j]=='N')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]=':';
-        if(filetime[book[i]][j]=='D')
-           filetime[book[i]][j+2]=filetime[book[i]][j+1]=filetime[book[i]][j]='<';
+
+        strcpy(filetime[i],ctime(&file_buf.st_mtime));//ctime()可以把时间转成字符串,返回值为字符串
+        for(j=0;j<4;j++)                              //转换年份
+        {
+            filetime[i][j]=filetime[i][j+20];
+            filetime[i][j+20]=0;
+        }
+        if(filetime[i][j]=='J'&&filetime[i][j+1]=='a')//转换月份
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='1';
+        if(filetime[i][j]=='F')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='2';
+        if(filetime[i][j]=='M'&&filetime[i][j+2]=='r')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='3';
+        if(filetime[i][j]=='A'&&filetime[i][j+1]=='p')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='4';
+        if(filetime[i][j]=='M'&&filetime[i][j+2]=='y')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='5';
+        if(filetime[i][j]=='J'&&filetime[i][j+2]=='n')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='6';
+        if(filetime[i][j]=='J'&&filetime[i][j+2]=='l')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='7';
+        if(filetime[i][j]=='A'&&filetime[i][j+1]=='u')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='8';
+        if(filetime[i][j]=='S')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='9';
+        if(filetime[i][j]=='O')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]=':';
+        if(filetime[i][j]=='N')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]=':';
+        if(filetime[i][j]=='D')
+           filetime[i][j+2]=filetime[i][j+1]=filetime[i][j]='<';
     }
-    for(i=0;i<n;i++)//按名字排序
-        for(j=0;j<n-1-i;j++)
+    for(i=0;i<m;i++)    //按名字排序
+        for(j=0;j<m-1-i;j++)
         {
             if(strcmp(filetime[book[j]],filetime[book[j+1]])<0)
             {
@@ -273,6 +278,10 @@ int shot_time(char filename[][100],int book[],int n)//文件名，记录数组�
                 book[j+1]=k;
             }
         }
+    for (i=0;i<n;i++)
+         free(filetime[i]);     //先释放一维指针
+    free(filetime);        //最后释放我二维指针
+    return 0;
 }
 int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
 {
@@ -283,6 +292,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
         R_name[strlen(R_name)+1]=0;
         R_name[strlen(R_name)]='/';
     }
+
     char time_pathname[100];//或取之前的目录
     if(getcwd(time_pathname,100)<0)
     {
@@ -302,11 +312,10 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
             my_err("chird",__LINE__);
     }
 
-
-    int sum,r_start,r_end;
+    int sum,r_start,r_end,time_sum;
     int i,j,k;
-    DIR *odir;//打开目录
-    struct dirent *rdir;//获取目录下的文件信息
+    DIR *odir;              //打开目录
+    struct dirent *rdir;    //获取目录下的文件信息
 
     if(odir=opendir("./"),odir==NULL)
     {
@@ -352,10 +361,9 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
     }
     closedir(odir);
 
-    //if(sum>10000)
-     //   my_err("有这么多文件的吗",__LINE__);
-
-
+    if(sum>50000)
+      my_err("有这么多文件的吗",__LINE__);
+    time_sum=sum;
     if(!(flag&PARAM_a))                  //处理a
         for(i=0;i<sum;i++)
             if(filename[book[i]][0]=='.')
@@ -366,7 +374,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
                 i--;
             }
 
-    for(i=0;i<sum;i++)//按名字排序
+    for(i=0;i<sum;i++)                  //按名字排序
         for(j=0;j<sum-1-i;j++)
         {
             if(strcmp(filename[book[j]],filename[book[j+1]])>0)
@@ -377,10 +385,10 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
             }
         }
 
-    if(flag&PARAM_t)//按时间排序
-        shot_time(filename,book,sum);
+    if(flag&PARAM_t)                //按时间排序
+        shot_time(filename,book,time_sum,sum);
 
-    if(flag&PARAM_r)//倒序处理
+    if(flag&PARAM_r)                //倒序处理
     {
         r_start=-sum+1;
         r_end=1;
@@ -393,13 +401,12 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
 
     line_long=0;
     line_rest=80;
-    for(i=0;i<sum;i++)//找出最大宽度
+    for(i=0;i<sum;i++)              //找出最大宽度
     {
         if(printf_strlen(filename[book[i]])>line_long)
             line_long=printf_strlen(filename[book[i]]);
     }
-
-    if(flag&PARAM_MORE && !(flag&PARAM_R))//如果有多个且为文件输出一下文件名
+    if(flag&PARAM_MORE && !(flag&PARAM_R))      //如果有多个且为文件输出一下文件名
         printf("%s:\n",pathname);
 
     for(i=r_start;i<r_end;i++)//输出一遍
@@ -409,7 +416,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
     if(flag&PARAM_l)//对a ; 不同输出的格式控制
         printf("\n");
     else
-        printf("\n123\n");
+        printf("\n\n");
 
     if(flag&PARAM_R)
     {
@@ -418,8 +425,6 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
         {
             if(!strcmp(".",filename[book[abs(i)]])||!strcmp("./",filename[book[abs(i)]])||!strcmp("..",filename[book[abs(i)]])||!strcmp("../",filename[book[abs(i)]]))
                 continue;
-//printf("%s 这里 ",filename[book[abs(i)]]);
-//printf("time-lstat:%d \n",lstat(filename[book[abs(i)]],&buf));
             if(lstat(filename[book[abs(i)]],&buf)==-1)
             {
                 if(errno==2)
@@ -427,7 +432,6 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
                     perror(filename[book[abs(i)]]);
                     if(chdir(time_pathname)==-1) //切换回来工作目录
                         perror("chdir");
-                    //getchar();
                     return 0 ;
                 }
                 if(errno=13)
@@ -445,7 +449,7 @@ int play_dir(char *pathname,int flag)//处理目录下的文件们．．．
             if(S_ISDIR(buf.st_mode))
             {
 
-                printf("%s%s:456\n",R_name,filename[book[abs(i)]]);
+                printf("%s%s:\n",R_name,filename[book[abs(i)]]);
 
                 play_dir(filename[book[abs(i)]],flag);
 
@@ -503,19 +507,18 @@ int main(int argc,char **argv)
 
         }
     }
-    if(i==argc)//只有一个文件名
+    if(i==argc)                     //只有一个文件名
         play_dir("./",flag_param);
-    if(i+1<argc)       //两个以上
+    if(i+1<argc)                    //两个以上
         flag_param|=PARAM_MORE;
-    for(i;i<argc;i++)//遍历一遍文件名
+    for(i;i<argc;i++)               //遍历一遍文件名
     {
         line_rest=80;
-        if(lstat(argv[i],&buf)==-1)//文件是否存在是否是//全局使用lstat,f防止有链接文件；
+        if(lstat(argv[i],&buf)==-1)//文件是否存在是否是,全局使用lstat,f防止有链接文件；
             my_err(argv[i],__LINE__);
         if(S_ISDIR(buf.st_mode))
         {
             play_dir(argv[i],flag_param);
-
         }
         else
         {
