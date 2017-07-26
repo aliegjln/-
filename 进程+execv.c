@@ -13,8 +13,8 @@ int main(int argc,char *argv[])
 {
     int fp;
     fp=open(argv[0],O_RDWR|O_CREAT|O_APPEND,0777);
-    write(fp,"ghjd",sizeof(char)*5);
+    write(fp,argv[1],sizeof(char)*strlen(argv[1]));
     close(fp);
-    sleep(5);
+    sleep(3);
     exit (0);
 }
