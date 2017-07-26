@@ -2,16 +2,18 @@
 #include<string.h>
 #include<stdlib.h>
 #include<sys/types.h>
+#include<fcntl.h>
 #include<unistd.h>
-#include<signal.h>
+#include<signal.h>        //sigal
 #include<sys/stat.h>
 #include<time.h>
 #include<syslog.h>
 #include<sys/param.h>   //包含NOFILE
+#include<sys/wait.h>
 int main()
 {
-
-    signal(SIGTTOU,SIG_IGN);//0.屏蔽一些有关控制终端操作的信号。这是为了防止在守护进程没有正常运转起来时，控制终端受到干扰退出或挂起。
+    //0.屏蔽一些有关控制终端操作的信号。这是为了防止在守护进程没有正常运转起来时，控制终端受到干扰退出或挂起。
+    signal(SIGTTOU,SIG_IGN);
     signal(SIGTTIN,SIG_IGN);
     signal(SIGTSTP,SIG_IGN);
     signal(SIGHUP ,SIG_IGN);
@@ -27,7 +29,7 @@ int main()
     其进程号就会一直被占用，但是系统所能使用的进程号是有限的，如果大量的产生僵死进程，将因为没有可用的进程号而导致系统不能产生新的进程.。）
         但如果父进程等待了，父进程就会变为停止状态，影响进程并发性；
         所以就会两难，解决办法在下面（处理SIGCHLD信号，通知内核，父不接收对子进程的结束信号）
-            但如果父进程提前结束那么子进程就会变成孤儿进程，他会被init进程收养，（这里有个坑，在命令行下是init,但是在图形界面模式不是）
+            但如果父进程提前结束那么子进程就会变成孤儿进程，他会被init进程收养，（这里有个坑，在命令行下是init,但是在图形界面模式是upstart(upstart是Ubuntu使用的用来代替init的东西,它的优点在于更快的启动系统,以及在硬件热拔插的时候启动或者停止相关服务.)）
     */
     if(pid==-1)
     {
@@ -65,4 +67,35 @@ int main()
     signal(SIGCHLD,SIG_IGN);//7.这里就是上面讲的（处理SIGCHLD信号，通知内核，父不接收对子进程的结束信号）
     //------------------守护进程-------OVER------------------------//
 
+
+    char *argv[2];
+    argv[0]="qwer.txt";
+    argv[1]=NULL;
+    while(1)//8.守护进程检测（我在这里是将一个字符串不断地追加在一个文件里，如果成功就可以通过文件来看到）
+    {
+        pid=fork();
+        if(pid==-1)
+        {
+            exit(1);
+        }
+        if(pid==0)
+        {
+
+            signal(SIGCHLD,SIG_IGN);//实验一：让父进程不管子，一直疯狂的造孩子。。。。
+            execv("asd",argv);//执行新程序，将之前的那块内存完全换成我调用的新的程序（记住，是是直接换程序，如果那个程序结束了，那就直接退出了不会返回来），但是ID什么的不变；
+            /*
+            execv(可执行文件名，传给下一个程序的argv字符串数组）（注意必须要以NULL结束）；
+            */
+        }
+        /*if(pid>0)
+        {
+            int stat_val;//子进程结束的状态码；
+            pid_t child_pid;//
+            child_pid=wait(&stat_val);//让父进程等待子进程（不然的话我这里是死循环，一直在造子进程，多个子进程对同一个文件进行写，会不会出现奇奇怪怪的问题呢？）
+            if(WIFEXITED(stat_val));//获取子进程返回停止状态宏函数；
+        }//实验一：让父进程不管子，一直疯狂的造孩子。。。。
+        */
+        sleep(10);
+    }
+    return 0;
 }
