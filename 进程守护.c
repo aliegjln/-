@@ -91,7 +91,7 @@ int main()
             int stat_val;//子进程结束的状态码；
             pid_t child_pid;//
             child_pid=wait(&stat_val);//让父进程等待子进程
-            if(WIFEXITED(stat_val));//获取子进程返回停止状态宏函数；
+            if(WIFEXITED(stat_val));//获取子进程返回停止状态宏函数；虽然这获取没什么用。。。但是记录一下
         }
 
     }
