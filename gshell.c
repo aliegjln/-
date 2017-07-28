@@ -12,6 +12,8 @@
 #include<sys/wait.h>
 #include <errno.h>
 #include<dirent.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #define PARAM_NONE 0     //无参数
 #define PARAM_out1 1     //all
@@ -24,6 +26,9 @@ char out_file[100];
 char time_filein[100]="/home/gjln/timein.txt";
 char time_fileout[100]="/home/gjln/timeout.txt";
 int flag_param;
+//static char *line_read = (char *)NULL;
+char *buf = NULL;
+int apart_command(char *argv[256],char cmd_time[100]);
 int my_error(char *err,int line)
 {
     printf("Line:%d \n",line);
@@ -56,12 +61,20 @@ int printf_tip()//输出
     {
         printf("%s",path);
     }
-    printf("# ");
+    printf("#");
 }
 int in_commands(char cmd_long[256])//输入
 {
     int len=0;
-    char timec;
+
+    buf = readline(" ");
+    if (buf != NULL)
+    {
+        strcpy(cmd_long,buf);
+        add_history(buf);
+        free(buf);
+    }
+    /*char timec;
 
     timec=getchar();
     while(len<256&&timec!='\n')
@@ -73,8 +86,10 @@ int in_commands(char cmd_long[256])//输入
     if(len==256)
     {
         my_error("输入命令过长",__LINE__);
-    }
+    }*/
+    len=strlen(cmd_long);
     cmd_long[len]=0;
+    printf("^^^^%s\n",cmd_long);
 }
 int apart_commands(char **cmd_s,char cmd_long[256])//book看之前是不是空的，如果不是就说名有冲突，语法错误
 {
@@ -116,6 +131,7 @@ int apart_commands(char **cmd_s,char cmd_long[256])//book看之前是不是空�
                 out_file[k]=cmd_long[i];
             }
             out_file[k]==0;
+//printf("out file:%s\n",out_file);
         }
         else if(cmd_long[i]=='<')
         {
@@ -132,7 +148,7 @@ int apart_commands(char **cmd_s,char cmd_long[256])//book看之前是不是空�
             }
             in_file[k]==0;
         }
-        else if(cmd_long[i]!='>'&&cmd_long[i]!='<'&&cmd_long[i]!='|'&&cmd_long[i]!='&')
+        else if(cmd_long[i]!='>'&&cmd_long[i]!='<'&&cmd_long[i]!='|'&&cmd_long[i]!='&'&&cmd_long[i]!=' ')
         {
             for(k=0;i<n&&cmd_long[i]!='>'&&cmd_long[i]!='<'&&cmd_long[i]!='|'&&cmd_long[i]!='&';k++,i++)
             {
@@ -143,11 +159,32 @@ int apart_commands(char **cmd_s,char cmd_long[256])//book看之前是不是空�
         }
     }
     cmd_s[j]=NULL;
+    for(i=0;cmd_s[i]!=NULL;i++)
+    {
+        if(strcmp(cmd_s[0],"exit")==0||strcmp(cmd_s[0],"logout")==0)
+        {
+            exit(0);
+        }
+        if(cmd_s[0][0]=='c'&&cmd_s[0][1]=='d')
+        {
+            char *argv[256];
+            for(j=0;j<256;j++)
+            {
+                argv[j]=(char *)malloc(sizeof(char)*100);
+            }
+            apart_command(argv,cmd_s[0]);
+            if(chdir(argv[1])==-1)
+            {
+                 printf("没有%s那个目录\n",argv[1]);
+            }
+            return 0;
+        }
+    }
     return 1;
 }
 int apart_command(char *argv[256],char cmd_time[100])
 {
-//printf("传入222apart_cmd:%s\n",cmd_time);
+printf("传入222apart_cmd:%s\n",cmd_time);
     int i,j=0,k;
     int flag=0;
     int n=strlen(cmd_time);
@@ -227,7 +264,7 @@ int do_commands(char **cmd_s)
             apart_command(argv,cmd_s[i]);//进一步解析命令
             if(find_command(argv[0])==0)//找命令
             {
-                printf("我找呀找不到%s这个命令\n",argv[0]);
+                printf("我找呀,找不到%s这个命令\n",argv[0]);
                 break;
             }
             pid2=fork();
@@ -314,22 +351,22 @@ int main()
         flag_param=PARAM_NONE;//初始化参数
         printf_tip();
         in_commands(cmd_long);
-//printf("%s\n",cmd_s);
-//退出
-       // char cmd_s[25 6][100];
+printf("+++%s+++\n",cmd_long);
+
         char **cmd_s=(char **)malloc(sizeof(char *)*256);
         int i;
         for(i=0;i<256;i++)
         {
-            cmd_s[i]=(char*)malloc(sizeof(char)*100);
+            cmd_s[i]=(char *)malloc(sizeof(char)*100);
         }
         if(!apart_commands(cmd_s,cmd_long))
             continue;
 
 for(i=0;cmd_s[i]!=NULL;i++)
 {
-    printf("****%s\n",cmd_s[i]);
+    printf("****%s***\n",cmd_s[i]);
 }
+
         do_commands(cmd_s);
 
     }
