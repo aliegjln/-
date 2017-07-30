@@ -26,8 +26,6 @@ char out_file[100];
 char time_filein[100]="/home/gjln/timein.txt";
 char time_fileout[100]="/home/gjln/timeout.txt";
 int flag_param;
-//static char *line_read = (char *)NULL;
-char *buf = NULL;
 int apart_command(char *argv[256],char cmd_time[100]);
 int my_error(char *err,int line)
 {
@@ -67,14 +65,17 @@ int in_commands(char cmd_long[256])//输入
 {
     int len=0;
 
+    /*char *buf;
+    buf=(char *)malloc(sizeof(char)*256);
+    memset(buf,0,256);
     buf = readline(" ");
-    if (buf != NULL)
+    if (*buf)
     {
         strcpy(cmd_long,buf);
         add_history(buf);
         free(buf);
-    }
-    /*char timec;
+    }*/
+    char timec;
 
     timec=getchar();
     while(len<256&&timec!='\n')
@@ -86,10 +87,9 @@ int in_commands(char cmd_long[256])//输入
     if(len==256)
     {
         my_error("输入命令过长",__LINE__);
-    }*/
-    len=strlen(cmd_long);
+    }
+    //len=strlen(cmd_long);
     cmd_long[len]=0;
-    printf("^^^^%s\n",cmd_long);
 }
 int apart_commands(char **cmd_s,char cmd_long[256])//book看之前是不是空的，如果不是就说名有冲突，语法错误
 {
@@ -184,7 +184,6 @@ int apart_commands(char **cmd_s,char cmd_long[256])//book看之前是不是空�
 }
 int apart_command(char *argv[256],char cmd_time[100])
 {
-printf("传入222apart_cmd:%s\n",cmd_time);
     int i,j=0,k;
     int flag=0;
     int n=strlen(cmd_time);
@@ -253,10 +252,8 @@ int do_commands(char **cmd_s)
     }
     if(pid1==0)//子
     {
-
         for(i=0;cmd_s[i]!=NULL;i++)
         {
-
             for(j=0;j<256;j++)
             {
                 argv[j]=(char *)malloc(sizeof(char)*100);
@@ -274,10 +271,9 @@ int do_commands(char **cmd_s)
             }
             if(pid2>0)//子
             {
-
-                int stsus;//if(&)不等，检测
-                if(wait(&stsus)==-1)
-                    printf("等子进程失败\n");;//等
+                int stsus2;
+                if(waitpid(pid2,&stsus2,0)==-1)
+                    printf("keng等子进程失败\n");
             }
             if(pid2==0)//孙
             {
@@ -316,7 +312,7 @@ int do_commands(char **cmd_s)
                     }
                     else
                     {
-                         if((fp_out=open(out_file,O_WRONLY|O_CREAT|O_APPEND ,0777))==-1)
+                        if((fp_out=open(out_file,O_WRONLY|O_CREAT|O_APPEND ,0777))==-1)
                             my_error("qwer.txt",__LINE__);
                         dup2(fp_out,1);
                     }
@@ -324,34 +320,45 @@ int do_commands(char **cmd_s)
                 else if(cmd_s[i+1]!=NULL)
                 {
                     if((fp_out=open(time_fileout,O_WRONLY|O_CREAT|O_TRUNC,0777))==-1)
-                            my_error("qwer.txt",__LINE__);
+                        my_error("qwer.txt",__LINE__);
                     dup2(fp_out,1);
                 }
-                printf("%s 找到啦！！！！！\n",argv[0]);//换程序
                 execvp(argv[0],argv);
                 exit(0);
             }
+        }
+        if(flag_param&PARAM_beh)
+        {
+           signal(SIGCHLD,SIG_IGN);
+
+            printf("%d:已结束",getpid());
         }
         exit (0);
     }
     if(pid1>0)//父
     {
-        int stsus;//if(&)不等，检测
-        if(wait(&stsus)==-1)
-            printf("等子进程失败\n");
-        //if（！&）等
-    }
+        if(!(flag_param&PARAM_beh))
+        {
+            int stsus;//if(&)不等，检测
+            if(waitpid(pid1,&stsus,0)==-1)
+                printf("等子进程失败\n");
+        }
+        else
+        {
+            printf("%d：已在后台运行\n",pid1);
+        }
 
+    }
 }
 int main()
 {
+    signal(SIGINT,SIG_IGN);
     char cmd_long[256];
     while(1)
     {
         flag_param=PARAM_NONE;//初始化参数
         printf_tip();
         in_commands(cmd_long);
-printf("+++%s+++\n",cmd_long);
 
         char **cmd_s=(char **)malloc(sizeof(char *)*256);
         int i;
@@ -361,12 +368,6 @@ printf("+++%s+++\n",cmd_long);
         }
         if(!apart_commands(cmd_s,cmd_long))
             continue;
-
-for(i=0;cmd_s[i]!=NULL;i++)
-{
-    printf("****%s***\n",cmd_s[i]);
-}
-
         do_commands(cmd_s);
 
     }
