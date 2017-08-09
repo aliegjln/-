@@ -124,11 +124,17 @@ int main()
                     break;
                 }
             }
+            continue;//第一次添加完，对应的客户端也是有相应的，但是任务已经处理过了所以要一个跳过
         }
 //服务端处理完了，看有没有客户端要链接
-        char buf[100];
+        char *buf;
         char buf2[100];
-        //cJSON *root=(cJSON*)malloc(sizeof(char)*100);//创建一个对象;//声明一个结
+        int  i;
+        cJSON *root=NULL;//声明一个结构
+        root=cJSON_CreateObject();//创建一个对象
+        cJSON_AddNumberToObject(root, "fromid", 000000);//添加一条信息（键值对）
+        cJSON_AddNumberToObject(root, "tomid", 000000);//添加一条信息（键值对）
+        cJSON_AddItemToObject(root, "note", cJSON_CreateString(buf2));//添加一条信息（键值对）
         for (int i = 0; i < s_srv_ctx->cli_cnt; i++)
         {
             int cl = s_srv_ctx->clifds[i];//如果有小零的就跳过（第一次肯定没有，应为他是一个一个赋上来的，但当有客户退出，就有－１存在）
@@ -138,18 +144,19 @@ int main()
             }
             if (FD_ISSET(cl, readfds))//如果有消息
             {
-                if(recv(cl,buf,sizeof(char)*100,0)<0)
+
+                if(recv(cl,root,sizeof(root),0)<0)
                 {
 
                     perror("6");
                     exit (1);
                 }
-                //buf=cJSON_Print(root);
-                printf("%s###\n",buf);
-                strcpy(buf2,"1223");
-                send(cl,buf2,sizeof(char)*100,0);
-                strcpy(buf2,"456");
-                send(cl,buf2,sizeof(char)*100,0);
+                //buf=cJSON_Print((cJSON*)root);
+                printf("%s\n",cJSON_Print(root));
+                //strcpy(buf2,"1223");
+               // send(cl,buf2,sizeof(char)*100,0);
+               // strcpy(buf2,"456");
+               // send(cl,buf2,sizeof(char)*100,0);
             }
         }
 
