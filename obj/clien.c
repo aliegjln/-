@@ -12,10 +12,10 @@
 #define SBUF 256
 
 #include <mysql/mysql.h>
-#define HOST    "118.89.245.72"
+#define HOST    "158.46.288.78"
 #define USER    "root"
-#define PASSWD  "Gjl1141411.1"
-#define DB_NAME "myqq"
+#define PASSWD  "*********"
+#define DB_NAME "my"
 MYSQL *mysqll; // 创建一个MYSQL句柄并
 struct friends
 {
